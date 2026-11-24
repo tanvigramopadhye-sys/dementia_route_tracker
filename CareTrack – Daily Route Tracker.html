@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CareTrack – Daily Route Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: #f1f3f4;
+      color: #202124;
+      line-height: 1.45;
+    }
+
+    /* Nav */
+    nav {
+      background: #1a73e8;
+      color: white;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(26,115,232,0.25);
+    }
+    nav .brand {
+      font-weight: 700;
+      font-size: 18px;
+      padding: 14px 0;
+    }
+    nav .links { display: flex; gap: 4px; flex-wrap: wrap; }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 14px;
+      border-radius: 8px;
+      opacity: 0.9;
+    }
+    nav a:hover, nav a.active { background: rgba(255,255,255,0.18); opacity: 1; }
+
+    /* Header strip */
+    .page-header {
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 20px;
+    }
+    .page-header h1 { font-size: 22px; color: #174ea6; margin-bottom: 4px; }
+    .page-header .meta { font-size: 14px; color: #5f6368; }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 20px;
+      padding: 12px 20px;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .line { width: 28px; height: 4px; border-radius: 2px; }
+    .line.blue { background: #1a73e8; }
+    .line.red { background: #d93025; }
+
+    #map { width: 100%; background: #e8f0fe; line-height:0; }
+    #map svg { width:100%; height:auto; max-height:560px; display:block; }
+    .map-note { font-size:12px; color:#5f6368; padding:8px 20px; background:#fff; border-bottom:1px solid #e0e0e0; }
+    #error {
+      display: none;
+      padding: 14px 20px;
+      background: #fce8e6;
+      color: #c5221f;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .card h2 {
+      font-size: 16px;
+      color: #174ea6;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2::before {
+      content: "";
+      width: 5px;
+      height: 18px;
+      background: #1a73e8;
+      border-radius: 2px;
+    }
+    .card h2.alert::before { background: #c5221f; }
+    .card h2.alert { color: #c5221f; }
+
+    /* Patient strip */
+    .patient-strip {
+      background: #e8f0fe;
+      border-left: 5px solid #1a73e8;
+      border-radius: 0 12px 12px 0;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .patient-strip strong { font-size: 18px; color: #174ea6; display: block; margin-bottom: 4px; }
+    .patient-strip span { font-size: 14px; color: #5f6368; }
+
+    /* Timeline */
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      background: #e8f0fe;
+    }
+    .timeline-item.anomaly {
+      background: #fce8e6;
+    }
+    .timeline-item .time {
+      font-weight: 700;
+      font-size: 14px;
+      color: #1a73e8;
+    }
+    .timeline-item.anomaly .time { color: #c5221f; }
+    .timeline-item .place { font-weight: 600; font-size: 15px; color: #174ea6; }
+    .timeline-item.anomaly .place { color: #a50e0e; }
+    .timeline-item .note { font-size: 13px; color: #5f6368; margin-top: 2px; }
+    .timeline-item.anomaly .note { color: #c5221f; font-weight: 600; }
+
+    /* Anomaly highlight */
+    .anomaly-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+    }
+    .anomaly-box > div {
+      background: #fce8e6;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .anomaly-box .label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #c5221f;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .anomaly-box .value {
+      font-size: 18px;
+      font-weight: 800;
+      color: #a50e0e;
+    }
+
+    /* Stops grid */
+    .stops {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .stop {
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      background: #f8f9fa;
+    }
+    .stop .name { font-weight: 600; color: #202124; margin-bottom: 4px; }
+    .stop .time { color: #5f6368; }
+    .stop.anomaly {
+      border-color: #d93025;
+      background: #fce8e6;
+    }
+    .stop.anomaly .name { color: #a50e0e; }
+
+    /* Places table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th {
+      background: #1a73e8;
+      color: white;
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 600;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e8eaed;
+    }
+    tr:nth-child(even) td { background: #e8f0fe; }
+    tr.anomaly-row td {
+      background: #fce8e6 !important;
+      color: #a50e0e;
+      font-weight: 700;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #9aa0a6;
+      padding: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .timeline-item { grid-template-columns: 1fr; gap: 4px; }
+      .anomaly-box { grid-template-columns: 1fr; }
+      #map { height: 360px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="brand">CareTrack</div>
+    <div class="links">
+      <a href="#map-section" class="active">Map</a>
+      <a href="#report">Report</a>
+      <a href="#timeline">Timeline</a>
+      <a href="#places">Places</a>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <h1>Dementia Patient Daily Route Tracker</h1>
+    <div class="meta">Patient ID: DP-2026-0847 · Date: 21 Aug 2026 · Area: Kothrud / Deccan, Pune · Simulated GPS Track</div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="line blue"></div> Daily routine track (Home → Park → Work → Hospital → Home)</div>
+    <div class="legend-item"><div class="line red"></div> Anomaly: Unscheduled visit to Market</div>
+  </div>
+
+  <div id="map-section">
+    <div id="map" role="img" aria-label="Route map: blue daily route Home, Park, Work, Hospital, Home; red detour to Market"></div>
+    <div class="map-note">Schematic route map drawn from the GPS coordinates listed under Places visited.</div>
+  </div>
+
+  <div class="container" id="report">
+
+    <!-- Patient -->
+    <div class="patient-strip">
+      <strong>Ramesh Kulkarni</strong>
+      <span>Age 72 · Patient ID DP-2026-0847 · Kothrud, Pune</span><br>
+      <span>Wearable GPS · Caregiver alerted at 14:05</span>
+    </div>
+
+    <!-- Summary -->
+    <div class="card">
+      <h2>Summary</h2>
+      <p style="margin-bottom:10px;font-size:15px;">
+        Most of the day followed the usual pattern: morning walk, day centre, hospital check-up, then home.
+      </p>
+      <p style="margin-bottom:10px;font-size:15px;">
+        One unplanned stop stood out — a visit to a market after work. That triggered an alert. He returned home safely at 18:40.
+      </p>
+      <p style="font-size:15px;color:#5f6368;">
+        Everything else stayed within the expected route.
+      </p>
+    </div>
+
+    <!-- Stop cards -->
+    <div class="card">
+      <h2>Stop summary</h2>
+      <div class="stops">
+        <div class="stop">
+          <div class="name">🏠 Home (Kothrud)</div>
+          <div class="time">Departed 07:15 · Returned 18:40</div>
+        </div>
+        <div class="stop">
+          <div class="name">🌳 Kamala Nehru Park</div>
+          <div class="time">07:40 – 08:25 (morning walk)</div>
+        </div>
+        <div class="stop">
+          <div class="name">💼 Work – Deccan Gymkhana</div>
+          <div class="time">09:05 – 13:30</div>
+        </div>
+        <div class="stop anomaly">
+          <div class="name">🛒 Market (Anomaly)</div>
+          <div class="time">13:55 – 14:40 (unscheduled)</div>
+        </div>
+        <div class="stop">
+          <div class="name">🏥 Lokmanya Hospital</div>
+          <div class="time">15:10 – 16:20 (routine check-up)</div>
+        </div>
+        <div class="stop">
+          <div class="name">🏠 Home</div>
+          <div class="time">Arrived 18:40</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card" id="timeline">
+      <h2>Timeline</h2>
+
+      <div class="timeline-item">
+        <div class="time">07:15</div>
+        <div>
+          <div class="place">Home (Kothrud)</div>
+          <div class="note">Left for morning walk</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">07:40 – 08:25</div>
+        <div>
+          <div class="place">Kamala Nehru Park</div>
+          <div class="note">Usual morning walk</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">09:05 – 13:30</div>
+        <div>
+          <div class="place">Work – Deccan Gymkhana</div>
+          <div class="note">Day centre / part-time</div>
+        </div>
+      </div>
+      <div class="timeline-item anomaly">
+        <div class="time">13:55 – 14:40</div>
+        <div>
+          <div class="place">Market</div>
+          <div class="note">Unscheduled stop — alert sent to caregiver · Duration: 45 minutes</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">15:10 – 16:20</div>
+        <div>
+          <div class="place">Lokmanya Hospital</div>
+          <div class="note">Routine check-up</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">18:40</div>
+        <div>
+          <div class="place">Home (Kothrud)</div>
+          <div class="note">Returned safely</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Anomaly -->
+    <div class="card">
+      <h2 class="alert">Anomaly — Market visit</h2>
+
+      <div class="anomaly-box">
+        <div>
+          <div class="label">TIME</div>
+          <div class="value">13:55 – 14:40</div>
+        </div>
+        <div>
+          <div class="label">PLACE</div>
+          <div class="value">Market</div>
+        </div>
+        <div>
+          <div class="label">DURATION</div>
+          <div class="value">45 min</div>
+        </div>
+      </div>
+
+      <p style="font-size:15px;margin-bottom:10px;">
+        After leaving work, Mr. Kulkarni walked to a market area instead of going straight to the hospital. The system flagged this and notified the caregiver at 14:05.
+      </p>
+      <p style="font-size:15px;margin-bottom:10px;">
+        He then went on to his hospital appointment and later returned home. No further unusual stops were recorded.
+      </p>
+      <p style="font-size:14px;font-style:italic;color:#5f6368;">
+        If this market is a place he knows well, it can be added to the allowed list so future visits do not trigger alerts. If not, a gentle reminder about the usual route may be helpful.
+      </p>
+    </div>
+
+    <!-- Map colours -->
+    <div class="card">
+      <h2>On the map</h2>
+      <p style="font-size:15px;color:#1a73e8;margin-bottom:6px;font-weight:500;">
+        Blue line — normal daily route (Home → Park → Work → Hospital → Home)
+      </p>
+      <p style="font-size:15px;color:#d93025;font-weight:700;">
+        Red line — unscheduled market visit
+      </p>
+    </div>
+
+    <!-- Places -->
+    <div class="card" id="places">
+      <h2>Places visited</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Place</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Home – Kothrud</td>
+            <td>18.5074</td>
+            <td>73.8076</td>
+          </tr>
+          <tr>
+            <td>Kamala Nehru Park</td>
+            <td>18.5196</td>
+            <td>73.8295</td>
+          </tr>
+          <tr>
+            <td>Work – Deccan Gymkhana</td>
+            <td>18.5208</td>
+            <td>73.8412</td>
+          </tr>
+          <tr class="anomaly-row">
+            <td>Market (unscheduled)</td>
+            <td>18.5318</td>
+            <td>73.8475</td>
+          </tr>
+          <tr>
+            <td>Lokmanya Hospital</td>
+            <td>18.5089</td>
+            <td>73.8341</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Simulated GPS data for demonstration only · CareTrack Monitoring
+  </div>
+
+  <script>
+    const L = {
+      home:{lat:18.5074,lng:73.8076,t:"Home",l:"H",c:"#1a73e8"},
+      park:{lat:18.5196,lng:73.8295,t:"Kamala Nehru Park",l:"P",c:"#1a73e8"},
+      work:{lat:18.5208,lng:73.8412,t:"Work",l:"W",c:"#1a73e8"},
+      market:{lat:18.5318,lng:73.8475,t:"Market (anomaly)",l:"M",c:"#d93025"},
+      hospital:{lat:18.5089,lng:73.8341,t:"Lokmanya Hospital",l:"+",c:"#1a73e8"}
+    };
+    const daily=[L.home,{lat:18.5105,lng:73.8120},{lat:18.5140,lng:73.8200},L.park,{lat:18.5200,lng:73.8350},L.work,{lat:18.5150,lng:73.8380},L.hospital,{lat:18.5100,lng:73.8200},L.home];
+    const anomaly=[L.work,{lat:18.5250,lng:73.8440},L.market,{lat:18.5200,lng:73.8400},L.hospital];
+    const W=900,H=520,P=70,minLat=18.503,maxLat=18.535,minLng=73.803,maxLng=73.852;
+    const X=g=>P+(g-minLng)/(maxLng-minLng)*(W-2*P);
+    const Y=a=>H-P-(a-minLat)/(maxLat-minLat)*(H-2*P);
+    const pts=a=>a.map(p=>X(p.lng).toFixed(1)+","+Y(p.lat).toFixed(1)).join(" ");
+    let g='';
+    for(let i=1;i<9;i++){g+=`<line x1="${i*W/9}" y1="0" x2="${i*W/9}" y2="${H}" stroke="#d2e3fc" stroke-width="1"/>`;}
+    for(let i=1;i<6;i++){g+=`<line x1="0" y1="${i*H/6}" x2="${W}" y2="${i*H/6}" stroke="#d2e3fc" stroke-width="1"/>`;}
+    g+=`<polyline points="${pts(daily)}" fill="none" stroke="#1a73e8" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
+    g+=`<polyline points="${pts(anomaly)}" fill="none" stroke="#d93025" stroke-width="5" stroke-dasharray="12 7" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const off={home:[0,34],park:[0,-24],work:[0,-24],market:[0,-24],hospital:[0,34]};
+    for(const k in L){const p=L[k],x=X(p.lng),y=Y(p.lat);
+      g+=`<circle cx="${x}" cy="${y}" r="15" fill="${p.c}" stroke="#fff" stroke-width="3"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${p.l}</text><text x="${x}" y="${y+off[k][1]}" text-anchor="middle" font-size="14" font-weight="600" fill="${p.c==="#d93025"?"#a50e0e":"#174ea6"}" font-family="system-ui,sans-serif">${p.t}</text>`;}
+    document.getElementById("map").innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+
+    document.querySelectorAll('nav a').forEach(a=>{
+      a.addEventListener('click',e=>{
+        e.preventDefault();
+        document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+        document.querySelectorAll('nav a').forEach(x=>x.classList.remove('active'));
+        a.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

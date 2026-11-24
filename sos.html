@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SOS – Dementia Patient Emergency Card</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: #f1f3f4;
+      color: #202124;
+      line-height: 1.45;
+    }
+
+    /* SOS banner */
+    .sos-banner {
+      background: linear-gradient(135deg, #c5221f, #a50e0e);
+      color: white;
+      padding: 18px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(197,34,31,0.35);
+    }
+    .sos-banner h1 {
+      font-size: 28px;
+      letter-spacing: 2px;
+      font-weight: 800;
+    }
+    .sos-banner p { font-size: 14px; opacity: 0.95; margin-top: 4px; }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+    /* Patient card */
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card h2 {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #5f6368;
+      margin-bottom: 14px;
+      font-weight: 600;
+    }
+
+    .patient-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .patient-photo {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #1a73e8;
+      background: #e8f0fe;
+    }
+    .patient-info h3 { font-size: 22px; color: #174ea6; margin-bottom: 4px; }
+    .patient-info p { font-size: 14px; color: #5f6368; }
+
+    /* House */
+    .house-img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      background: #e8f0fe;
+    }
+    .house-addr {
+      font-size: 15px;
+      color: #202124;
+      font-weight: 500;
+    }
+
+    /* Contacts */
+    .contact {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid #f1f3f4;
+    }
+    .contact:last-child { border-bottom: none; }
+    .contact-photo {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #dadce0;
+      background: #e8f0fe;
+      flex-shrink: 0;
+    }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-info .name { font-size: 17px; font-weight: 600; color: #202124; }
+    .contact-info .role { font-size: 13px; color: #5f6368; margin-top: 2px; }
+    .contact-info .phone { font-size: 15px; color: #1a73e8; margin-top: 4px; font-weight: 500; }
+
+    .call-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #1a73e8;
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 16px;
+      border-radius: 24px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .call-btn:active { background: #1557b0; }
+    .call-btn.sos {
+      background: #c5221f;
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      border-radius: 12px;
+      margin-top: 8px;
+    }
+    .call-btn.sos:active { background: #a50e0e; }
+
+    /* Map */
+    #map {
+      width: 100%;
+      height: 280px;
+      border-radius: 12px;
+      background: #e8f0fe;
+    }
+    .route-info {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: #e8f0fe;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #174ea6;
+    }
+    .route-info strong { display: block; margin-bottom: 4px; font-size: 15px; }
+
+    .nav-btn {
+      display: block;
+      text-align: center;
+      margin-top: 12px;
+      background: #34a853;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px;
+      border-radius: 12px;
+    }
+    .nav-btn:active { background: #2d8e47; }
+
+    .medical {
+      background: #fef7e0;
+      border-left: 4px solid #f9ab00;
+      padding: 14px 16px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+    }
+    .medical strong { color: #8a5000; }
+
+    #error {
+      display: none;
+      background: #fce8e6;
+      color: #c5221f;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 480px) {
+      .patient-photo { width: 72px; height: 72px; }
+      .contact-photo { width: 56px; height: 56px; }
+      .sos-banner h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sos-banner">
+    <h1>SOS EMERGENCY</h1>
+    <p>Dementia patient · Show this screen to helpers</p>
+  </div>
+
+  <div class="container">
+
+<!-- Patient -->
+    <div class="card">
+      <h2>Patient</h2>
+      <div class="patient-row">
+        <img class="patient-photo"
+             src="https://ui-avatars.com/api/?name=Ramesh+Kulkarni&size=176&background=1a73e8&color=fff&bold=true"
+             alt="Ramesh Kulkarni">
+        <div class="patient-info">
+          <h3>Ramesh Kulkarni</h3>
+          <p>Age 72 · Male</p>
+          <p>Patient ID: DP-2026-0847</p>
+          <p style="margin-top:6px;color:#c5221f;font-weight:600;">Has dementia · May be confused</p>
+        </div>
+      </div>
+    </div>
+
+<!-- Emergency contacts -->
+    <div class="card">
+      <h2>Emergency contacts</h2>
+
+      <div class="contact">
+        <img class="contact-photo"
+             src="https://ui-avatars.com/api/?name=Sunita+Kulkarni&size=128&background=34a853&color=fff&bold=true"
+             alt="Sunita Kulkarni">
+        <div class="contact-info">
+          <div class="name">Sunita Kulkarni</div>
+          <div class="role">Wife · Primary family contact</div>
+          <div class="phone">+91 98765 43210</div>
+        </div>
+        <a class="call-btn" href="tel:+919876543210">Call</a>
+      </div>
+
+      <div class="contact">
+        <img class="contact-photo"
+             src="https://ui-avatars.com/api/?name=Amit+Kulkarni&size=128&background=1a73e8&color=fff&bold=true"
+             alt="Amit Kulkarni">
+        <div class="contact-info">
+          <div class="name">Amit Kulkarni</div>
+          <div class="role">Son · Lives nearby</div>
+          <div class="phone">+91 98765 43211</div>
+        </div>
+        <a class="call-btn" href="tel:+919876543211">Call</a>
+      </div>
+
+      <div class="contact">
+        <img class="contact-photo"
+             src="https://ui-avatars.com/api/?name=Priya+Sharma&size=128&background=f9ab00&color=fff&bold=true"
+             alt="Priya Sharma">
+        <div class="contact-info">
+          <div class="name">Priya Sharma</div>
+          <div class="role">Full-time caretaker</div>
+          <div class="phone">+91 98765 43212</div>
+        </div>
+        <a class="call-btn" href="tel:+919876543212">Call</a>
+      </div>
+
+      <div class="contact">
+        <img class="contact-photo"
+             src="https://ui-avatars.com/api/?name=Dr+Mehta&size=128&background=9334e6&color=fff&bold=true"
+             alt="Dr Mehta">
+        <div class="contact-info">
+          <div class="name">Dr. S. Mehta</div>
+          <div class="role">Family doctor</div>
+          <div class="phone">+91 98765 43213</div>
+        </div>
+        <a class="call-btn" href="tel:+919876543213">Call</a>
+      </div>
+
+      <a class="call-btn sos" href="tel:112">SOS — Call Emergency (112)</a>
+    </div>
+
+<!-- Route to hospital -->
+    <div class="card">
+      <h2>Route to nearest hospital</h2>
+      <div id="error"></div>
+      <div id="map"></div>
+      <div class="route-info" id="routeInfo">
+        <strong>Lokmanya Hospital</strong>
+        Loading route from home…
+      </div>
+      <a class="nav-btn"
+         id="navBtn"
+         href="https://www.google.com/maps/dir/?api=1&origin=18.5074,73.8076&destination=18.5089,73.8341&travelmode=driving"
+         target="_blank"
+         rel="noopener">
+        Open in Google Maps — Navigate
+      </a>
+    </div>
+
+<!-- Medical notes - HIGH PRIORITY -->
+    <div class="card" style="padding:0;overflow:hidden;border:2px solid #c5221f;">
+      <div style="background:#c5221f;color:white;padding:10px 16px;font-weight:700;font-size:14px;letter-spacing:0.5px;">
+        ⚠ MEDICAL ALERT — READ FIRST
+      </div>
+      <div class="medical" style="background:#fce8e6;border-left:none;border-radius:0;">
+        <div style="margin-bottom:10px;">
+          <strong style="color:#a50e0e;font-size:15px;">Condition</strong><br>
+          Mild to moderate dementia (Alzheimer-type). May be disoriented, anxious, or unable to state name/address.
+        </div>
+        <div style="margin-bottom:10px;">
+          <strong style="color:#a50e0e;font-size:15px;">Allergies</strong><br>
+          <span style="background:#c5221f;color:white;padding:2px 8px;border-radius:4px;font-weight:700;">PENICILLIN</span>
+          &nbsp;— Do not administer penicillin-based antibiotics.
+        </div>
+        <div style="margin-bottom:10px;">
+          <strong style="color:#a50e0e;font-size:15px;">Blood group</strong><br>
+          <span style="font-size:18px;font-weight:800;color:#a50e0e;">B+</span>
+        </div>
+        <div style="margin-bottom:10px;">
+          <strong style="color:#a50e0e;font-size:15px;">Language</strong><br>
+          Prefers Marathi / Hindi. Limited English.
+        </div>
+        <div>
+          <strong style="color:#a50e0e;font-size:15px;">Current medications</strong><br>
+          Donepezil 5 mg (night) · Memantine 10 mg (morning) · Amlodipine 5 mg (BP)
+        </div>
+      </div>
+    </div>
+
+<!-- Medical history -->
+    <div class="card">
+      <h2>Medical history</h2>
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:600;color:#5f6368;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Diagnoses</div>
+        <p style="font-size:15px;margin-bottom:4px;"><strong>Primary:</strong> Mild to moderate dementia, Alzheimer-type (diagnosed 2023)</p>
+        <p style="font-size:15px;margin-bottom:4px;"><strong>Secondary:</strong> Hypertension (controlled) · Mild hearing loss (right ear)</p>
+        <p style="font-size:14px;color:#5f6368;">No known stroke, diabetes, or seizure history</p>
+      </div>
+
+      <div style="margin-bottom:14px;padding-top:12px;border-top:1px solid #f1f3f4;">
+        <div style="font-size:13px;font-weight:600;color:#5f6368;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Current medications</div>
+        <div style="display:grid;gap:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px 12px;border-radius:8px;">
+            <span style="font-weight:600;font-size:14px;">Donepezil</span>
+            <span style="font-size:13px;color:#5f6368;">5 mg · Night · Dementia</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px 12px;border-radius:8px;">
+            <span style="font-weight:600;font-size:14px;">Memantine</span>
+            <span style="font-size:13px;color:#5f6368;">10 mg · Morning · Dementia</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px 12px;border-radius:8px;">
+            <span style="font-weight:600;font-size:14px;">Amlodipine</span>
+            <span style="font-size:13px;color:#5f6368;">5 mg · Morning · Blood pressure</span>
+          </div>
+        </div>
+        <p style="font-size:12px;color:#80868b;margin-top:8px;">Last reviewed by Dr. S. Mehta — July 2026</p>
+      </div>
+
+      <div style="margin-bottom:14px;padding-top:12px;border-top:1px solid #f1f3f4;">
+        <div style="font-size:13px;font-weight:600;color:#5f6368;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Recent history</div>
+        <p style="font-size:14px;margin-bottom:4px;">July 2026 — Routine review; BP stable; no medicine change</p>
+        <p style="font-size:14px;margin-bottom:4px;">March 2026 — Mild fall at home; no fracture</p>
+        <p style="font-size:14px;">2023 — Dementia diagnosis confirmed</p>
+      </div>
+
+      <div style="padding-top:12px;border-top:1px solid #f1f3f4;">
+        <div style="font-size:13px;font-weight:600;color:#5f6368;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Care notes for hospital staff</div>
+        <p style="font-size:14px;margin-bottom:4px;">Speak slowly in Marathi or Hindi. Short sentences help.</p>
+        <p style="font-size:14px;margin-bottom:4px;">A familiar face (wife / caretaker) reduces agitation.</p>
+        <p style="font-size:14px;margin-bottom:4px;">Avoid sedatives if possible — they can worsen confusion.</p>
+        <p style="font-size:14px;">For infection: use non-penicillin antibiotics only.</p>
+      </div>
+    </div>
+
+<p style="text-align:center;font-size:12px;color:#9aa0a6;padding:12px 0 24px;">
+      Simulated SOS card for demonstration · Not real patient data
+    </p>
+  </div>
+
+  <!-- Google Maps -->
+  <script>
+    (g => {
+      var h, a, k, p = "The Google Maps JavaScript API",
+          c = "google", l = "importLibrary", q = "__ib__",
+          m = document, b = window;
+      b = b[c] || (b[c] = {});
+      var d = b.maps || (b.maps = {}), r = new Set,
+          e = new URLSearchParams,
+          u = () => h || (h = new Promise(async (f, n) => {
+            await (a = m.createElement("script"));
+            e.set("libraries", [...r] + "");
+            for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]);
+            e.set("callback", c + ".maps." + q);
+            a.src = `https://maps.${c}apis.com/maps/api/js?` + e;
+            d[q] = f;
+            a.onerror = () => h = n(Error(p + " could not load."));
+            a.nonce = m.querySelector("script[nonce]")?.nonce || "";
+            m.head.append(a);
+          }));
+      d[l] ? console.warn(p + " only loads once. Ignoring:", g)
+           : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n));
+    })({
+      key: "AIzaSyAkZp-JWdOQxUeNMkpeJUmUiAjSdNP28LE",
+      v: "weekly"
+    });
+  </script>
+
+  <script type="module">
+    const HOME = { lat: 18.5074, lng: 73.8076 };
+    const HOSPITAL = { lat: 18.5089, lng: 73.8341 };
+
+    async function init() {
+      try {
+        const { Map } = await google.maps.importLibrary("maps");
+        const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+        // Directions service (legacy but widely supported)
+        await google.maps.importLibrary("routes");
+
+        const map = new Map(document.getElementById("map"), {
+          center: { lat: 18.508, lng: 73.821 },
+          zoom: 14,
+          mapId: "DEMO_MAP_ID",
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: true,
+        });
+
+        // Home marker
+        const homePin = new PinElement({
+          background: "#1a73e8",
+          borderColor: "#fff",
+          glyph: "H",
+          glyphColor: "white",
+          scale: 1.15,
+        });
+        new AdvancedMarkerElement({
+          map,
+          position: HOME,
+          title: "Home – Kothrud",
+          content: homePin.element,
+        });
+
+        // Hospital marker
+        const hospPin = new PinElement({
+          background: "#c5221f",
+          borderColor: "#fff",
+          glyph: "+",
+          glyphColor: "white",
+          scale: 1.15,
+        });
+        new AdvancedMarkerElement({
+          map,
+          position: HOSPITAL,
+          title: "Lokmanya Hospital",
+          content: hospPin.element,
+        });
+
+        // Draw route with DirectionsService
+        const directionsService = new google.maps.DirectionsService();
+        const directionsRenderer = new google.maps.DirectionsRenderer({
+          map,
+          suppressMarkers: true,
+          polylineOptions: {
+            strokeColor: "#c5221f",
+            strokeWeight: 5,
+            strokeOpacity: 0.9,
+          },
+        });
+
+        directionsService.route(
+          {
+            origin: HOME,
+            destination: HOSPITAL,
+            travelMode: google.maps.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            const info = document.getElementById("routeInfo");
+            if (status === "OK" && result) {
+              directionsRenderer.setDirections(result);
+              const leg = result.routes[0].legs[0];
+              info.innerHTML = `
+                <strong>Lokmanya Hospital</strong>
+                Distance: <b>${leg.distance.text}</b> &nbsp;·&nbsp;
+                Est. time: <b>${leg.duration.text}</b><br>
+                <span style="color:#5f6368;font-size:13px;">From home (Kothrud) · Driving</span>
+              `;
+            } else {
+              // Fallback: straight line
+              new google.maps.Polyline({
+                path: [HOME, HOSPITAL],
+                geodesic: true,
+                strokeColor: "#c5221f",
+                strokeOpacity: 0.9,
+                strokeWeight: 5,
+                map,
+              });
+              info.innerHTML = `
+                <strong>Lokmanya Hospital</strong>
+                Approx. 2–3 km from home · Driving recommended<br>
+                <span style="color:#5f6368;font-size:13px;">Route preview (directions unavailable)</span>
+              `;
+            }
+          }
+        );
+      } catch (err) {
+        const el = document.getElementById("error");
+        el.style.display = "block";
+        el.textContent = "Map could not load: " + (err.message || err);
+        console.error(err);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
